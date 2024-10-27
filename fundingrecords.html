@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funding Records</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            margin-top: 10px;
+     
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .records-section {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 1.0em;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #219150;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.9em;
+            text-align: left;
+            color: #555;
+        }
+        
+        .warning {
+            color: red;
+            margin-top: 10px;
+        }
+        #backgroundVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1; /* Send the video to the background */
+            object-fit: cover; /* Ensure the video covers the entire screen */
+            filter: brightness(20%);  
+        }    
+
+    </style>
+</head>
+<body>
+    <video autoplay muted loop id="backgroundVideo">
+        <source src="video-bg.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <div class="container">
+        <h2>Funding Records</h2>
+
+        <div class="records-section">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Daily Sign-In (₱)</th>
+                        <th>Bonuses (₱)</th>
+                        <th>Total Earnings (₱)</th>
+                    </tr>
+                </thead>
+                <tbody id="records-table-body">
+                    <!-- Funding records will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <button class="button" id="back-button">Back to Dashboard</button>
+        <button class="button" id="delete-all-button">Delete All Records</button>
+
+        <div class="instructions">
+            <h3>Instructions</h3>
+            <ol>
+                <li>View your daily income and bonuses from your sign-in activities.</li>
+                <li>This section updates every time you sign in or receive bonuses.</li>
+                <li>You can delete all records by clicking the "Delete All Records" button.</li>
+            </ol>
+        </div>
+
+        <div class="warning" id="warning-message"></div>
+    </div>
+
+    <script>
+        // Function to load funding records from localStorage
+        function loadFundingRecords() {
+            const records = JSON.parse(localStorage.getItem('fundingRecords')) || [];
+            const tableBody = document.getElementById('records-table-body');
+
+            // Clear existing rows
+            tableBody.innerHTML = '';
+
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4">No records available.</td></tr>`;
+                return;
+            }
+
+            // Populate the table with records
+            records.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.date}</td>
+                    <td>₱${record.dailySignIn.toFixed(2)}</td>
+                    <td>₱${record.bonuses.toFixed(2)}</td>
+                    <td>₱${(record.dailySignIn + record.bonuses).toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Function to log daily sign-in and bonuses into funding records
+        function logDailySignIn() {
+            const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+            const dailySignIn = 1.00; // Daily sign-in reward
+            const bonuses = parseFloat(localStorage.getItem('currentBalance')) || 0; // Fetch bonus balance
+
+            const records = JSON.parse(localStorage.getItem('fundingRecords')) || [];
+            const existingRecordIndex = records.findIndex(record => record.date === today);
+
+            // Only log if today’s record does not already exist
+            if (existingRecordIndex === -1) {
+                // Add new record for today
+                records.push({
+                    date: today,
+                    dailySignIn: dailySignIn,
+                    bonuses: bonuses
+                });
+
+                // Save updated records back to localStorage
+                localStorage.setItem('fundingRecords', JSON.stringify(records));
+            }
+        }
+
+        // Function to delete all records
+        function deleteAllRecords() {
+            localStorage.removeItem('fundingRecords');
+            document.getElementById('warning-message').textContent = "All records have been deleted.";
+            
+            // Clear the warning message after 3 seconds
+            setTimeout(() => {
+                document.getElementById('warning-message').textContent = '';
+            }, 3000);
+
+            loadFundingRecords(); // Refresh the display
+        }
+
+        // Back button functionality
+        document.getElementById('back-button').addEventListener('click', () => {
+            window.location.href = 'dashboard.html'; // Redirect to the dashboard
+        });
+
+        // Delete All button functionality
+        document.getElementById('delete-all-button').addEventListener('click', deleteAllRecords);
+
+        // Load records on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFundingRecords();
+            logDailySignIn(); // Call this function to log today's sign-in once when the page loads
+        });
+    </script>
+
+
+    <footer class="footer">
+        <div class="footer-icons">
+            <a href="dashboard.html" class="footer-item">
+                <img src="home-icon.png" alt="Home" class="footer-icon">
+                <span class="icon-label">Home</span>
+            </a>
+            <a href="invest.html" class="footer-item">
+                <img src="invest-icon.png" alt="Invest" class="footer-icon">
+                <span class="icon-label">Invest</span>
+            </a>
+            <a href="teams.html" class="footer-item">
+                <img src="team-icon.png" alt="Teams" class="footer-icon">
+                <span class="icon-label">Teams</span>
+            </a>
+            <a href="mine.html" id="logoutLink" class="footer-item">
+                <img src="mine-icon.png" alt="Mine" class="footer-icon">
+                <span class="icon-label">Mine</span>
+            </a>
+        </div>
+    </footer>
+    <style>
+        
+        
+        .footer {
+            background-color: rgba(0, 128, 0, 0.3); /* Semi-transparent green for glass effect */
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border-radius: 15px;
+            backdrop-filter: blur(10px); /* Frosted glass blur effect */
+            box-shadow: 0 4px 10px rgba(0, 255, 0, 0.4), 0 2px 20px rgba(0, 128, 0, 0.6); /* Green glowing effect */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Light border for glass effect */
+            transition: box-shadow 0.3s ease; /* Smooth transition effect */
+        }
+        
+        .footer:hover {
+            box-shadow: 0 6px 15px rgba(0, 255, 0, 0.6), 0 4px 25px rgba(0, 128, 0, 0.8); /* Brighter shine on hover */
+        }
+        
+        .footer-icons {
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .footer-item {
+            display: flex;
+            flex-direction: column; /* Stack icon and label vertically */
+            align-items: center; /* Center the icon and label */
+            text-decoration: none; /* Remove underline from links */
+        }
+        
+        .footer-icon {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0) invert(1); /* Make the icon white */
+        }
+        
+        .icon-label {
+            color: white; /* White text for the labels */
+            font-size: 14px; /* Adjust size of the label text */
+            margin-top: 5px; /* Space between icon and label */
+        }
+    </style>
+</body>
+</html>
+
+
+
